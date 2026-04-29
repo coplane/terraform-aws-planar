@@ -28,6 +28,17 @@ processors:
           - container.cpu.utilized
           - container.memory.reserved
           - container.memory.utilized
+  resource/ecs_tags:
+    attributes:
+      - key: service.name
+        value: ${service_name}
+        action: upsert
+      - key: customer.name
+        value: ${customer_name}
+        action: upsert
+      - key: deployment.environment
+        value: ${stage}
+        action: upsert
 %{ endif ~}
   batch: {}
 
@@ -47,7 +58,7 @@ service:
 %{ if enable_ecs_container_metrics ~}
     metrics/ecs:
       receivers: [awsecscontainermetrics]
-      processors: [filter/ecs_metrics, batch]
+      processors: [filter/ecs_metrics, resource/ecs_tags, batch]
       exporters: [otlphttp/gateway]
 %{ endif ~}
     traces:

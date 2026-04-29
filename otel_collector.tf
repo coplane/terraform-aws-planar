@@ -3,6 +3,9 @@ locals {
     enable_ecs_container_metrics = var.enable_ecs_container_metrics
     metrics_endpoint             = "$${env:METRICS_ENDPOINT}"
     telemetry_token              = "$${env:TELEMETRY_TOKEN}"
+    service_name                 = var.app_name
+    customer_name                = coalesce(var.customer_name, var.app_name)
+    stage                        = var.stage
   }) : null
 }
 

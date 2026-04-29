@@ -47,6 +47,12 @@ exporters:
     endpoint: ${metrics_endpoint}
     headers:
       authorization: "Bearer ${telemetry_token}"
+%{ if enable_ecs_container_metrics ~}
+  otlphttp/ecs:
+    endpoint: ${metrics_endpoint}
+    headers:
+      authorization: "Bearer ${telemetry_token}"
+%{ endif ~}
 %{ if enable_logs_pipeline ~}
   otlphttp/logs:
     endpoint: ${metrics_endpoint}
@@ -65,7 +71,7 @@ service:
     metrics/ecs:
       receivers: [awsecscontainermetrics]
       processors: [filter/ecs_metrics, resource/ecs_tags, batch]
-      exporters: [otlphttp/gateway]
+      exporters: [otlphttp/ecs]
 %{ endif ~}
     traces:
       receivers: [otlp]

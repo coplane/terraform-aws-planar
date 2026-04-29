@@ -127,10 +127,7 @@ resource "aws_ecs_task_definition" "main" {
         image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
         essential = true
 
-        command = var.log_output_config != null ? [
-          "--config", "env:OTELCOL_BASE_CONFIG",
-          "--config", "env:OTELCOL_LOG_CONFIG"
-        ] : ["--config", "env:OTELCOL_BASE_CONFIG"]
+        command = ["--config", "env:OTELCOL_BASE_CONFIG"]
 
         portMappings = [
           { containerPort = 4317, hostPort = 4317 },
@@ -138,16 +135,11 @@ resource "aws_ecs_task_definition" "main" {
           { containerPort = 13133, hostPort = 13133 },
         ]
 
-        environment = concat(
-          [
-            { name = "METRICS_ENDPOINT", value = var.metrics_endpoint },
-            { name = "OTELCOL_BASE_CONFIG", value = local.otel_base_config },
-            { name = "TELEMETRY_TOKEN", value = coalesce(var.telemetry_token, "") },
-          ],
-          var.log_output_config != null ? [
-            { name = "OTELCOL_LOG_CONFIG", value = var.log_output_config }
-          ] : []
-        )
+        environment = [
+          { name = "METRICS_ENDPOINT", value = var.metrics_endpoint },
+          { name = "OTELCOL_BASE_CONFIG", value = local.otel_base_config },
+          { name = "TELEMETRY_TOKEN", value = coalesce(var.telemetry_token, "") },
+        ]
 
         healthCheck = {
           command     = ["CMD", "/healthcheck"]
@@ -166,12 +158,6 @@ resource "aws_ecs_task_definition" "main" {
           }
         }
 
-        secrets = [
-          for name, arn in var.log_output_secrets : {
-            name      = name
-            valueFrom = arn
-          }
-        ]
       }
     ] : []
   ))

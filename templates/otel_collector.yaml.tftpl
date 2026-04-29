@@ -47,6 +47,12 @@ exporters:
     endpoint: ${metrics_endpoint}
     headers:
       authorization: "Bearer ${telemetry_token}"
+%{ if enable_logs_pipeline ~}
+  otlphttp/logs:
+    endpoint: ${metrics_endpoint}
+    headers:
+      authorization: "Bearer ${telemetry_token}"
+%{ endif ~}
 
 service:
   extensions: [health_check]
@@ -59,3 +65,9 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlphttp/gateway]
+%{ if enable_logs_pipeline ~}
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logs]
+%{ endif ~}

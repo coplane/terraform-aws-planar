@@ -1,6 +1,7 @@
 locals {
   otel_base_config = var.telemetry_enabled ? templatefile("${path.module}/templates/otel_collector.yaml.tftpl", {
     enable_ecs_container_metrics = var.enable_ecs_container_metrics
+    enable_logs_pipeline         = var.enable_logs_pipeline
     metrics_endpoint             = "$${env:METRICS_ENDPOINT}"
     telemetry_token              = "$${env:TELEMETRY_TOKEN}"
     service_name                 = var.app_name

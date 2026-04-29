@@ -32,7 +32,7 @@ processors:
   batch: {}
 
 exporters:
-  otlphttp/metrics:
+  otlphttp/gateway:
     endpoint: ${metrics_endpoint}
     headers:
       authorization: "Bearer ${telemetry_token}"
@@ -43,4 +43,8 @@ service:
     metrics:
       receivers: [otlp%{ if enable_ecs_container_metrics }, awsecscontainermetrics%{ endif }]
       processors: [%{ if enable_ecs_container_metrics }filter/ecs_metrics, %{ endif }batch]
-      exporters: [otlphttp/metrics]
+      exporters: [otlphttp/gateway]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/gateway]

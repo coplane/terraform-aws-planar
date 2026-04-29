@@ -248,16 +248,10 @@ variable "metrics_endpoint" {
   }
 }
 
-variable "log_output_config" {
-  description = "OTel Collector YAML config fragment for routing OTel-instrumented logs emitted by the app via OTLP. Must define exporters and service.pipelines.logs. Merged with the base config via a second --config flag. When null, no log pipeline is configured. Note: container stdout/stderr is always routed to CloudWatch via awslogs and is unaffected by this variable."
-  type        = string
-  default     = null
-}
-
-variable "log_output_secrets" {
-  description = "Secrets to inject into the OTel Collector container for log exporter credentials. Map of env var name to Secrets Manager ARN."
-  type        = map(string)
-  default     = {}
+variable "enable_logs_pipeline" {
+  description = "Enable an OTel Collector logs pipeline that exports app OTLP logs to the telemetry gateway. Uses the same endpoint and token as metrics/traces."
+  type        = bool
+  default     = false
 }
 
 variable "ecs_log_retention_days" {

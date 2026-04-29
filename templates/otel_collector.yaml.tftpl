@@ -28,6 +28,17 @@ processors:
           - container.cpu.utilized
           - container.memory.reserved
           - container.memory.utilized
+  resource/ecs_tags:
+    attributes:
+      - key: service.name
+        value: ${service_name}
+        action: upsert
+      - key: customer.name
+        value: ${customer_name}
+        action: upsert
+      - key: deployment.environment
+        value: ${stage}
+        action: upsert
 %{ endif ~}
   batch: {}
 
@@ -36,15 +47,39 @@ exporters:
     endpoint: ${metrics_endpoint}
     headers:
       authorization: "Bearer ${telemetry_token}"
+%{ if enable_ecs_container_metrics ~}
+  otlphttp/ecs:
+    endpoint: ${metrics_endpoint}
+    headers:
+      authorization: "Bearer ${telemetry_token}"
+%{ endif ~}
+%{ if enable_logs_pipeline ~}
+  otlphttp/logs:
+    endpoint: ${metrics_endpoint}
+    headers:
+      authorization: "Bearer ${telemetry_token}"
+%{ endif ~}
 
 service:
   extensions: [health_check]
   pipelines:
-    metrics:
-      receivers: [otlp%{ if enable_ecs_container_metrics }, awsecscontainermetrics%{ endif }]
-      processors: [%{ if enable_ecs_container_metrics }filter/ecs_metrics, %{ endif }batch]
+    metrics/app:
+      receivers: [otlp]
+      processors: [batch]
       exporters: [otlphttp/gateway]
+%{ if enable_ecs_container_metrics ~}
+    metrics/ecs:
+      receivers: [awsecscontainermetrics]
+      processors: [filter/ecs_metrics, resource/ecs_tags, batch]
+      exporters: [otlphttp/ecs]
+%{ endif ~}
     traces:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlphttp/gateway]
+%{ if enable_logs_pipeline ~}
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logs]
+%{ endif ~}

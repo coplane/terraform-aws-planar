@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.7.0...v0.7.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* split metrics pipelines + inline logs + isolate ECS exporter ([#46](https://github.com/coplane/planar-deploy-infra-aws/issues/46)) ([684c469](https://github.com/coplane/planar-deploy-infra-aws/commit/684c4697652ea1bcf200a6edab1a5b436dd85a1b))
+
 ## [0.7.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.6.0...v0.7.0) (2026-04-29)
 
 

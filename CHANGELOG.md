@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.6.0...v0.7.0) (2026-04-29)
+
+
+### Features
+
+* add traces pipeline to OTel Collector sidecar [CPLN-1020] ([#43](https://github.com/coplane/planar-deploy-infra-aws/issues/43)) ([7030efe](https://github.com/coplane/planar-deploy-infra-aws/commit/7030efe8756b869944b9364ed6256ea5c607f1cc))
+
 ## [0.6.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.5.1...v0.6.0) (2026-04-23)
 
 

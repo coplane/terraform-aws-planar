@@ -58,9 +58,15 @@ service:
   extensions: [health_check]
   pipelines:
     metrics/app:
-      receivers: [otlp%{ if enable_ecs_container_metrics }, awsecscontainermetrics%{ endif }]
-      processors: [%{ if enable_ecs_container_metrics }filter/ecs_metrics, %{ endif }batch]
+      receivers: [otlp]
+      processors: [batch]
       exporters: [otlphttp/gateway]
+%{ if enable_ecs_container_metrics ~}
+    metrics/ecs:
+      receivers: [awsecscontainermetrics]
+      processors: [filter/ecs_metrics, resource/ecs_tags, batch]
+      exporters: [otlphttp/gateway]
+%{ endif ~}
     traces:
       receivers: [otlp]
       processors: [batch]

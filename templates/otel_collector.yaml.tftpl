@@ -22,12 +22,32 @@ processors:
         metric_names:
           - ecs.task.cpu.reserved
           - ecs.task.cpu.utilized
+          - ecs.task.cpu.usage.vcpu
           - ecs.task.memory.reserved
           - ecs.task.memory.utilized
+          - ecs.task.memory.usage
+          - ecs.task.memory.usage.limit
+          - ecs.task.network.rate.rx
+          - ecs.task.network.rate.tx
+          - ecs.task.network.io.usage.rx_bytes
+          - ecs.task.network.io.usage.tx_bytes
+          - ecs.task.storage.read_bytes
+          - ecs.task.storage.write_bytes
+          - ecs.task.ephemeral_storage.utilized
+          - ecs.task.ephemeral_storage.reserved
           - container.cpu.reserved
           - container.cpu.utilized
+          - container.cpu.usage.vcpu
           - container.memory.reserved
           - container.memory.utilized
+          - container.memory.usage
+          - container.memory.usage.limit
+          - container.network.rate.rx
+          - container.network.rate.tx
+          - container.network.io.usage.rx_bytes
+          - container.network.io.usage.tx_bytes
+          - container.storage.read_bytes
+          - container.storage.write_bytes
   resource/ecs_tags:
     attributes:
       - key: service.name

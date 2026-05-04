@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.7.1...v0.8.0) (2026-05-04)
+
+
+### Features
+
+* expand ECS container metrics allowlist ([#48](https://github.com/coplane/planar-deploy-infra-aws/issues/48)) ([9507cfb](https://github.com/coplane/planar-deploy-infra-aws/commit/9507cfbc0bb840627f3855a7587b3226c81f7ead))
+
 ## [0.7.1](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.7.0...v0.7.1) (2026-04-29)
 
 

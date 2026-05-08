@@ -112,6 +112,13 @@ resource "aws_ecs_task_definition" "main" {
             ] : []
           )
 
+          secrets = var.otel_database_metrics_enabled ? [
+            {
+              name      = "OTEL_DB_PASSWORD"
+              valueFrom = aws_secretsmanager_secret.otel_monitor[0].arn
+            }
+          ] : []
+
           essential = true
         },
         var.container_registry_username != null && var.container_registry_password != null ? {
@@ -124,7 +131,7 @@ resource "aws_ecs_task_definition" "main" {
     var.telemetry_enabled ? [
       {
         name      = "otel-collector"
-        image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
+        image     = "otel/opentelemetry-collector-contrib:0.108.0"
         essential = true
 
         command = ["--config", "env:OTELCOL_BASE_CONFIG"]
@@ -141,8 +148,15 @@ resource "aws_ecs_task_definition" "main" {
           { name = "TELEMETRY_TOKEN", value = coalesce(var.telemetry_token, "") },
         ]
 
+        secrets = var.otel_database_metrics_enabled ? [
+          {
+            name      = "OTEL_DB_PASSWORD"
+            valueFrom = aws_secretsmanager_secret.otel_monitor[0].arn
+          }
+        ] : []
+
         healthCheck = {
-          command     = ["CMD", "/healthcheck"]
+          command     = ["CMD-SHELL", "wget -q --spider http://localhost:13133/ || exit 1"]
           interval    = 30
           timeout     = 5
           retries     = 3

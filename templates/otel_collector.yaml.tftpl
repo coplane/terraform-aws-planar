@@ -12,6 +12,54 @@ receivers:
 %{ if enable_ecs_container_metrics ~}
   awsecscontainermetrics: {}
 %{ endif ~}
+%{ if enable_database_metrics ~}
+  postgresql:
+    endpoint: ${rds_endpoint}:5432
+    transport: tcp
+    username: ${otel_db_user}
+    password: $${env:OTEL_DB_PASSWORD}
+    databases: [appdb]
+    collection_interval: 60s
+    tls:
+      insecure: false
+      insecure_skip_verify: false
+  sqlquery:
+    driver: postgres
+    datasource: "host=${rds_endpoint} port=5432 user=${otel_db_user} password=$${env:OTEL_DB_PASSWORD} dbname=appdb sslmode=require"
+    collection_interval: 60s
+    queries:
+      - sql: |
+          SELECT
+            queryid::text AS query_id,
+            calls,
+            total_exec_time,
+            mean_exec_time,
+            rows
+          FROM pg_stat_statements
+          ORDER BY total_exec_time DESC
+          LIMIT 50
+        metrics:
+          - metric_name: postgresql.query.calls
+            value_column: calls
+            attribute_columns: [query_id]
+            value_type: int
+            data_type: sum
+            monotonic: true
+          - metric_name: postgresql.query.total_exec_time_ms
+            value_column: total_exec_time
+            attribute_columns: [query_id]
+            data_type: sum
+          - metric_name: postgresql.query.mean_exec_time_ms
+            value_column: mean_exec_time
+            attribute_columns: [query_id]
+            data_type: gauge
+          - metric_name: postgresql.query.rows
+            value_column: rows
+            attribute_columns: [query_id]
+            value_type: int
+            data_type: sum
+            monotonic: true
+%{ endif ~}
 
 processors:
 %{ if enable_ecs_container_metrics ~}
@@ -79,6 +127,12 @@ exporters:
     headers:
       authorization: "Bearer ${telemetry_token}"
 %{ endif ~}
+%{ if enable_database_metrics ~}
+  otlphttp/db:
+    endpoint: ${metrics_endpoint}
+    headers:
+      authorization: "Bearer ${telemetry_token}"
+%{ endif ~}
 
 service:
   extensions: [health_check]
@@ -102,4 +156,10 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlphttp/logs]
+%{ endif ~}
+%{ if enable_database_metrics ~}
+    metrics/db:
+      receivers: [postgresql, sqlquery]
+      processors: [batch]
+      exporters: [otlphttp/db]
 %{ endif ~}

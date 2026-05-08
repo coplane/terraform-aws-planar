@@ -290,3 +290,9 @@ variable "telemetry_token" {
   sensitive   = true
   default     = null
 }
+
+variable "otel_database_metrics_enabled" {
+  description = "Enable OTel postgres receivers (postgresql + sqlquery against pg_stat_statements). Provisions an otel_monitor password in Secrets Manager and attaches a cluster parameter group enabling pg_stat_statements. Transition from false to true requires a one-time database reboot for shared_preload_libraries to take effect. The planar app must also set otel.database_metrics.enabled = true in its config to bootstrap the matching DB role."
+  type        = bool
+  default     = false
+}

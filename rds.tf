@@ -1,3 +1,28 @@
+resource "aws_rds_cluster_parameter_group" "main" {
+  count       = var.otel_database_metrics_enabled ? 1 : 0
+  name        = "aurora-pg${local.suffix}-otel"
+  family      = "aurora-postgresql16"
+  description = "Cluster parameters enabling pg_stat_statements for OTel scraping"
+
+  parameter {
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
+    apply_method = "pending-reboot"
+  }
+
+  parameter {
+    name  = "pg_stat_statements.track"
+    value = "all"
+  }
+
+  parameter {
+    name  = "track_io_timing"
+    value = "1"
+  }
+
+  tags = local.common_tags
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = "aurora-subnet-group${local.suffix}"
   subnet_ids = var.subnets
@@ -18,8 +43,9 @@ resource "aws_rds_cluster" "main" {
   backup_retention_period       = var.backup_retention_days
   preferred_backup_window       = "03:00-04:00"
 
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids          = [aws_security_group.rds.id]
+  db_subnet_group_name            = aws_db_subnet_group.main.name
+  db_cluster_parameter_group_name = var.otel_database_metrics_enabled ? aws_rds_cluster_parameter_group.main[0].name : null
 
   storage_encrypted         = true
   deletion_protection       = var.stage == "prod" ? true : false

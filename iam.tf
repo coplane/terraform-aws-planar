@@ -37,6 +37,18 @@ data "aws_iam_policy_document" "ecs_execution_policy" {
   }
 
   dynamic "statement" {
+    for_each = var.otel_database_metrics_enabled ? [1] : []
+    content {
+      sid = "OtelMonitorPasswordAccess"
+      actions = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      resources = [aws_secretsmanager_secret.otel_monitor[0].arn]
+    }
+  }
+
+  dynamic "statement" {
     for_each = var.repository_name != null ? [1] : []
     content {
       sid = "ECRGetAuthorizationToken"
@@ -68,7 +80,8 @@ data "aws_iam_policy_document" "ecs_execution_policy" {
 resource "aws_iam_role_policy" "ecs_execution" {
   count = (
     var.repository_name != null ||
-    (var.container_registry_username != null && var.container_registry_password != null)
+    (var.container_registry_username != null && var.container_registry_password != null) ||
+    var.otel_database_metrics_enabled
   ) ? 1 : 0
   name   = "ecs-execution-policy${local.suffix}"
   role   = aws_iam_role.ecs_execution.id

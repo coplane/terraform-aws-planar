@@ -21,8 +21,12 @@ receivers:
     databases: [appdb]
     collection_interval: 60s
     tls:
+      # TLS is on (encrypted in transit), but cert verification is skipped:
+      # distroless contrib image's CA bundle doesn't include the RDS root CA.
+      # Follow-up: ship the AWS RDS global bundle into the image and switch
+      # to ca_file-based verification.
       insecure: false
-      insecure_skip_verify: false
+      insecure_skip_verify: true
   sqlquery:
     driver: postgres
     datasource: "host=${rds_endpoint} port=5432 user=${otel_db_user} password=$${env:OTEL_DB_PASSWORD} dbname=appdb sslmode=require"

@@ -52,10 +52,12 @@ receivers:
           - metric_name: postgresql.query.total_exec_time_ms
             value_column: total_exec_time
             attribute_columns: [query_id]
+            value_type: double
             data_type: sum
           - metric_name: postgresql.query.mean_exec_time_ms
             value_column: mean_exec_time
             attribute_columns: [query_id]
+            value_type: double
             data_type: gauge
           - metric_name: postgresql.query.rows
             value_column: rows

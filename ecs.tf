@@ -155,13 +155,10 @@ resource "aws_ecs_task_definition" "main" {
           }
         ] : []
 
-        healthCheck = {
-          command     = ["CMD-SHELL", "wget -q --spider http://localhost:13133/ || exit 1"]
-          interval    = 30
-          timeout     = 5
-          retries     = 3
-          startPeriod = 30
-        }
+        # No healthCheck: contrib image is distroless (no shell, no wget — see
+        # https://github.com/coplane/planar-deploy-infra-aws/pull/15 for the
+        # ADOT switch this would have re-broken). ECS still detects process
+        # exits and restarts the task. ALB target group health checks the app.
 
         logConfiguration = {
           logDriver = "awslogs"

@@ -95,6 +95,12 @@ resource "aws_ecs_task_definition" "main" {
                 value = var.workos_org_id
               }
             ],
+            var.otel_database_metrics_enabled ? [
+              {
+                name  = "OTEL_MONITOR_SECRET_NAME"
+                value = aws_secretsmanager_secret.otel_monitor[0].name
+              }
+            ] : [],
             [for k, v in var.custom_environment_variables : { name = k, value = v }],
             var.telemetry_enabled ? [
               {
@@ -111,13 +117,6 @@ resource "aws_ecs_task_definition" "main" {
               }
             ] : []
           )
-
-          secrets = var.otel_database_metrics_enabled ? [
-            {
-              name      = "OTEL_DB_PASSWORD"
-              valueFrom = aws_secretsmanager_secret.otel_monitor[0].arn
-            }
-          ] : []
 
           essential = true
         },

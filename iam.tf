@@ -102,10 +102,13 @@ data "aws_iam_policy_document" "ecs_task_policy" {
       "secretsmanager:GetSecretValue",
       "secretsmanager:DescribeSecret"
     ]
-    resources = [
-      aws_rds_cluster.main.master_user_secret[0].secret_arn,
-      aws_secretsmanager_secret.custom_secret.arn
-    ]
+    resources = concat(
+      [
+        aws_rds_cluster.main.master_user_secret[0].secret_arn,
+        aws_secretsmanager_secret.custom_secret.arn,
+      ],
+      var.otel_database_metrics_enabled ? [aws_secretsmanager_secret.otel_monitor[0].arn] : [],
+    )
   }
 
   statement {

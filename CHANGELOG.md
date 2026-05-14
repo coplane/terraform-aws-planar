@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.0...v0.8.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* ECR lifecycle policy with tag-aware retention ([#52](https://github.com/coplane/planar-deploy-infra-aws/issues/52)) ([b08da5a](https://github.com/coplane/planar-deploy-infra-aws/commit/b08da5a7cf35e59f4c35aa66a7f843299250b551))
+
 ## [0.8.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.7.1...v0.8.0) (2026-05-04)
 
 

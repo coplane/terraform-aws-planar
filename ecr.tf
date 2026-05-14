@@ -19,19 +19,43 @@ resource "aws_ecr_lifecycle_policy" "main" {
   count      = var.repository_name != null ? 1 : 0
   repository = aws_ecr_repository.main[0].name
 
+  # Tag-aware retention. The previous "keep last 5, any tag" policy evicted prod
+  # images whenever 5 staging deploys happened, leaving prod services running on
+  # images that no longer existed in ECR (no recovery path if the task died).
   policy = jsonencode({
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 5 images"
+        description  = "Keep last 30 prod-tagged images"
         selection = {
-          tagStatus   = "any"
-          countType   = "imageCountMoreThan"
-          countNumber = 5
+          tagStatus     = "tagged"
+          tagPrefixList = ["prod"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 30
         }
-        action = {
-          type = "expire"
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 2
+        description  = "Keep last 20 staging-tagged images"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["staging"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 20
         }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 3
+        description  = "Expire untagged images after 7 days"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 7
+        }
+        action = { type = "expire" }
       }
     ]
   })

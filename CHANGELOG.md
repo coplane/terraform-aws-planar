@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.1...v0.8.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* override CrossSiteScripting_BODY and GenericRFI_BODY to Count in WAF common ruleset [CPLN-1099] ([#54](https://github.com/coplane/planar-deploy-infra-aws/issues/54)) ([370c196](https://github.com/coplane/planar-deploy-infra-aws/commit/370c196e2c338a549ac457bb0f246dd30f485422))
+
 ## [0.8.1](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.0...v0.8.1) (2026-05-14)
 
 

@@ -59,7 +59,11 @@ resource "aws_wafv2_web_acl" "main" {
           vendor_name = rule.value.vendor
 
           dynamic "rule_action_override" {
-            for_each = rule.value.managed == "AWSManagedRulesCommonRuleSet" ? ["SizeRestrictions_BODY"] : []
+            for_each = rule.value.managed == "AWSManagedRulesCommonRuleSet" ? [
+              "SizeRestrictions_BODY",
+              "CrossSiteScripting_BODY",
+              "GenericRFI_BODY",
+            ] : []
             content {
               name = rule_action_override.value
               action_to_use {

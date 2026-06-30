@@ -112,6 +112,13 @@ resource "aws_ecs_task_definition" "main" {
             ] : []
           )
 
+          secrets = var.coplane_api_token != null ? [
+            {
+              name      = "COPLANE_API_TOKEN"
+              valueFrom = aws_secretsmanager_secret.coplane_api_token[0].arn
+            }
+          ] : []
+
           essential = true
         },
         var.container_registry_username != null && var.container_registry_password != null ? {

@@ -63,11 +63,28 @@ data "aws_iam_policy_document" "ecs_execution_policy" {
     }
   }
 
+  # ECS injects the COPLANE_API_TOKEN env var from this secret at task start, so
+  # the execution role (not the task role) needs read access.
+  dynamic "statement" {
+    for_each = var.coplane_api_token != null ? [1] : []
+    content {
+      sid = "CoplaneApiTokenAccess"
+      actions = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      resources = [
+        aws_secretsmanager_secret.coplane_api_token[0].arn
+      ]
+    }
+  }
+
 }
 
 resource "aws_iam_role_policy" "ecs_execution" {
   count = (
     var.repository_name != null ||
+    var.coplane_api_token != null ||
     (var.container_registry_username != null && var.container_registry_password != null)
   ) ? 1 : 0
   name   = "ecs-execution-policy${local.suffix}"

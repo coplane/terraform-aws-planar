@@ -290,3 +290,10 @@ variable "telemetry_token" {
   sensitive   = true
   default     = null
 }
+
+variable "coplane_api_token" {
+  description = "Service token for the CoPlane backend dir-sync API. When set, injected into the app as the COPLANE_API_TOKEN env var via Secrets Manager."
+  type        = string
+  sensitive   = true
+  default     = null
+}

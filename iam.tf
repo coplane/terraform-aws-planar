@@ -138,3 +138,9 @@ resource "aws_iam_role_policy" "ecs_task" {
   role   = aws_iam_role.ecs_task.id
   policy = data.aws_iam_policy_document.ecs_task_policy.json
 }
+
+#Inline policy for Bedrock Mantle, used e.g for GPT-5.6 Luna model.
+resource "aws_iam_role_policy_attachment" "ecs_task_bedrock_mantle" {
+  role       = aws_iam_role.ecs_task.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockMantleInferenceAccess"
+}

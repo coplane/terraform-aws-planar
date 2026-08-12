@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.2...v0.9.0) (2026-08-12)
+
+
+### Features
+
+* Attach Bedrock Mantle policy ([#59](https://github.com/coplane/planar-deploy-infra-aws/issues/59)) ([52ffb7f](https://github.com/coplane/planar-deploy-infra-aws/commit/52ffb7fba2bad4a75be43b3e70a671cd880d58e5))
+
 ## [0.8.2](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.1...v0.8.2) (2026-05-20)
 
 

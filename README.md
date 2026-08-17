@@ -111,6 +111,101 @@ An external deployment pipeline must:
 
 Do not maintain an independent task-definition JSON document in the application repository. It can silently overwrite infrastructure changes introduced by a module upgrade.
 
+### Application deployment IAM
+
+The application deployment role does not need permission to create or modify the infrastructure managed by this module. The following policy limits image pushes to the application ECR repository, service updates to this Planar service, and `iam:PassRole` to the two roles used by its task definition.
+
+```hcl
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+data "aws_region" "current" {}
+
+locals {
+  ecs_cluster_arn     = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${module.planar.ecs_cluster_name}"
+  ecs_service_arn     = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:service/${module.planar.ecs_cluster_name}/${module.planar.ecs_service_name}"
+  task_definition_arn = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${module.planar.ecs_task_definition_family}:*"
+}
+
+data "aws_iam_policy_document" "planar_deploy" {
+  statement {
+    sid       = "ECRAuthentication"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "ECRPush"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeImages",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+    ]
+    resources = [aws_ecr_repository.planar.arn]
+  }
+
+  statement {
+    sid = "ECSServiceDeployment"
+    actions = [
+      "ecs:DescribeServices",
+      "ecs:UpdateService",
+    ]
+    resources = [local.ecs_service_arn]
+  }
+
+  statement {
+    sid       = "ECSClusterRead"
+    actions   = ["ecs:DescribeClusters"]
+    resources = [local.ecs_cluster_arn]
+  }
+
+  statement {
+    sid       = "ECSTaskDefinitionRead"
+    actions   = ["ecs:DescribeTaskDefinition"]
+    resources = [local.task_definition_arn]
+  }
+
+  statement {
+    sid       = "ECSTaskDefinitionRegistration"
+    actions   = ["ecs:RegisterTaskDefinition"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "ECSTaskDefinitionTagging"
+    actions   = ["ecs:TagResource"]
+    resources = [local.task_definition_arn]
+  }
+
+  statement {
+    sid     = "PassPlanarTaskRoles"
+    actions = ["iam:PassRole"]
+    resources = [
+      module.planar.ecs_execution_role_arn,
+      module.planar.ecs_task_role_arn,
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "planar_deploy" {
+  name   = "planar-application-deploy"
+  role   = aws_iam_role.github_actions.name
+  policy = data.aws_iam_policy_document.planar_deploy.json
+}
+```
+
+In this example, `aws_ecr_repository.planar` and `aws_iam_role.github_actions` are customer-managed resources. The GitHub OIDC trust policy should be restricted separately to the intended organization, repository, and protected deployment branch or environment.
+
 ## Telemetry credentials
 
 `telemetry_token_secret_arn` is the preferred input. ECS retrieves the token at task startup and the module grants `secretsmanager:GetSecretValue` to the ECS execution role for that secret only.

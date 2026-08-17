@@ -74,6 +74,8 @@ module "planar" {
 
 The application will be available at `https://claims-prod.apps.example.com` after DNS and certificate validation complete.
 
+For staging and production, use a separate module instance and Terraform state for each environment. Keep environment-specific telemetry secrets, image tags, and deployment approvals separate, and pin each root configuration to an immutable module release.
+
 ## Prerequisites
 
 The calling configuration must provide:

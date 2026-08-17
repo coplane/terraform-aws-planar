@@ -1,11 +1,6 @@
-# Example: Deploy Planar with a new VPC
-#
-# Use this when you don't have an existing VPC. The VPC module creates
-# everything you need: VPC, public/private subnets, NAT gateway, and
-# route tables across multiple availability zones.
-
 terraform {
   required_version = ">= 1.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -15,23 +10,24 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-west-2"
+}
+
+data "aws_secretsmanager_secret" "telemetry_token" {
+  name = "planar-telemetry-token"
 }
 
 module "vpc" {
   source = "../../modules/vpc"
 
-  name       = "planar-prod"
+  name       = "planar-evaluation"
   cidr_block = "10.0.0.0/16"
 
-  # Use 2 AZs (default). Set to 3 for higher availability.
   availability_zone_count = 2
-
-  # Single NAT gateway (default, cheaper). Set to false for one per AZ.
-  single_nat_gateway = true
+  single_nat_gateway      = true
 
   tags = {
-    Environment = "prod"
+    Environment = "evaluation"
     ManagedBy   = "terraform"
   }
 }
@@ -39,13 +35,13 @@ module "vpc" {
 module "planar" {
   source = "../../"
 
-  app_name         = "myapp"
-  stage            = "prod"
-  aws_region       = "us-east-1"
-  base_domain_name = "example.com"
+  app_name         = "evaluation"
+  customer_name    = "example-customer"
+  stage            = "dev"
+  aws_region       = "us-west-2"
+  base_domain_name = "apps.example.com"
   hosted_zone_id   = "Z0123456789ABCDEF"
 
-  # Wire VPC module outputs to Planar inputs
   vpc_id      = module.vpc.vpc_id
   subnets     = module.vpc.private_subnet_ids
   alb_subnets = module.vpc.public_subnet_ids
@@ -54,26 +50,14 @@ module "planar" {
   container_image_name   = "coplane/planar-demo-public"
   container_image_tag    = "latest"
 
-  # Alternatively, you can create ECR and import the public demo image to it using:
-  # import_image_to_ecr = true
-  # repository_name     = "myapp-repo"
+  workos_client_id = "client_..."
+  workos_org_id    = "org_..."
 
-  # WorkOS authentication
-  workos_client_id = "client_xxx"
-  workos_org_id    = "org_xxx"
-
-  # Cost controls (optional)
-  # ecs_container_insights = "disabled"
-  # ecs_log_retention_days = 7
-  # otel_log_retention_days = 7
-  # rds_performance_insights_enabled = false
-  # rds_monitoring_interval = 0
-  # alb_access_logs_enabled = true
-  # alb_access_logs_bucket  = "my-central-alb-logs"
-  # alb_access_logs_prefix  = "planar/prod"
+  telemetry_token_secret_arn = data.aws_secretsmanager_secret.telemetry_token.arn
+  create_waf                 = true
 }
 
-output "app_endpoint_url" {
-  description = "The full endpoint url of the application"
-  value       = module.planar.domain_name
+output "application_url" {
+  description = "HTTPS URL of the Planar application"
+  value       = "https://${module.planar.domain_name}"
 }

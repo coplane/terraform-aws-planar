@@ -63,12 +63,24 @@ data "aws_iam_policy_document" "ecs_execution_policy" {
     }
   }
 
+  dynamic "statement" {
+    for_each = var.telemetry_enabled && var.telemetry_token_secret_arn != null ? [1] : []
+    content {
+      sid = "TelemetryTokenAccess"
+      actions = [
+        "secretsmanager:GetSecretValue",
+      ]
+      resources = [var.telemetry_token_secret_arn]
+    }
+  }
+
 }
 
 resource "aws_iam_role_policy" "ecs_execution" {
   count = (
     var.repository_name != null ||
-    (var.container_registry_username != null && var.container_registry_password != null)
+    (var.container_registry_username != null && var.container_registry_password != null) ||
+    (var.telemetry_enabled && var.telemetry_token_secret_arn != null)
   ) ? 1 : 0
   name   = "ecs-execution-policy${local.suffix}"
   role   = aws_iam_role.ecs_execution.id

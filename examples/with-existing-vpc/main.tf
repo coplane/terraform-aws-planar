@@ -1,13 +1,6 @@
-# Example: Deploy Planar into an existing VPC
-#
-# Use this when you already have a VPC with public and private subnets.
-# Your VPC must have:
-#   - Private subnets with NAT gateway access (for ECS tasks to reach AWS APIs)
-#   - Public subnets (for the ALB, if internet-facing)
-#   - DNS support and DNS hostnames enabled
-
 terraform {
   required_version = ">= 1.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -17,45 +10,52 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-west-2"
+}
+
+data "aws_secretsmanager_secret" "telemetry_token" {
+  name = "planar-telemetry-token"
 }
 
 module "planar" {
   source = "../../"
 
-  app_name         = "myapp"
+  app_name         = "claims"
+  customer_name    = "example-customer"
   stage            = "prod"
-  aws_region       = "us-east-1"
-  base_domain_name = "example.com"
+  aws_region       = "us-west-2"
+  base_domain_name = "apps.example.com"
   hosted_zone_id   = "Z0123456789ABCDEF"
 
   vpc_id      = "vpc-0123456789abcdef0"
-  subnets     = ["subnet-aaa", "subnet-bbb"]
-  alb_subnets = ["subnet-ccc", "subnet-ddd"]
+  subnets     = ["subnet-private-a", "subnet-private-b"]
+  alb_subnets = ["subnet-public-a", "subnet-public-b"]
 
-  container_registry_url = "ghcr.io"
-  container_image_name   = "coplane/planar-demo-public"
-  container_image_tag    = "latest"
+  container_registry_url = "123456789012.dkr.ecr.us-west-2.amazonaws.com"
+  container_image_name   = "planar"
+  container_image_tag    = "bootstrap"
 
-  # Alternatively, you can create ECR and import the public demo image to it using:
-  # import_image_to_ecr = true
-  # repository_name     = "myapp-repo"
+  workos_client_id = "client_..."
+  workos_org_id    = "org_..."
 
-  workos_client_id = "client_xxx"
-  workos_org_id    = "org_yyy"
+  telemetry_token_secret_arn   = data.aws_secretsmanager_secret.telemetry_token.arn
+  enable_ecs_container_metrics = true
+  enable_logs_pipeline         = true
 
-  # Cost controls (optional)
-  # ecs_container_insights = "disabled"
-  # ecs_log_retention_days = 7
-  # otel_log_retention_days = 7
-  # rds_performance_insights_enabled = false
-  # rds_monitoring_interval = 0
-  # alb_access_logs_enabled = true
-  # alb_access_logs_bucket  = "my-central-alb-logs"
-  # alb_access_logs_prefix  = "planar/prod"
+  ignore_task_definition_changes = true
+  create_waf                     = true
 }
 
-output "app_endpoint_url" {
-  description = "The full endpoint url of the application"
-  value       = module.planar.domain_name
+output "application_url" {
+  description = "HTTPS URL of the Planar application"
+  value       = "https://${module.planar.domain_name}"
+}
+
+output "deployment" {
+  description = "ECS identifiers consumed by the application deployment pipeline"
+  value = {
+    cluster                = module.planar.ecs_cluster_name
+    service                = module.planar.ecs_service_name
+    task_definition_family = module.planar.ecs_task_definition_family
+  }
 }

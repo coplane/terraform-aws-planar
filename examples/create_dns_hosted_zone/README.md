@@ -1,5 +1,11 @@
-Change `tenant_id` and `domain_suffix` (might be yours or complimentary from CoPlane) variables in main.tf.
-Apply the terraform.
-Copy NS values from output and share with the CoPlane team.
+# Delegated Planar DNS zone
 
-Thanks!
+This example creates a Route 53 hosted zone for a Planar tenant domain.
+
+After applying it:
+
+1. Read the `name_servers` output.
+2. Add those name servers as NS records in the parent DNS zone.
+3. Pass `hosted_zone_id` and the delegated domain to each Planar module instance.
+
+The parent-zone delegation is intentionally outside this example because it is commonly managed in another AWS account or DNS provider.

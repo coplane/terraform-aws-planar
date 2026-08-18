@@ -285,8 +285,14 @@ variable "rds_monitoring_interval" {
 }
 
 variable "telemetry_token" {
-  description = "Bearer token for authenticating with the Coplane telemetry gateway. Provided during onboarding."
+  description = "Bearer token for authenticating with the Coplane telemetry gateway. Ignored when telemetry_token_secret_arn is set."
   type        = string
   sensitive   = true
+  default     = null
+}
+
+variable "telemetry_token_secret_arn" {
+  description = "ARN of a Secrets Manager secret containing the Coplane telemetry bearer token. Preferred over telemetry_token."
+  type        = string
   default     = null
 }

@@ -13,9 +13,24 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name
 }
 
+output "ecs_execution_role_arn" {
+  description = "ARN of the ECS task execution role"
+  value       = aws_iam_role.ecs_execution.arn
+}
+
 output "ecs_service_name" {
   description = "Name of the ECS service"
   value       = var.ignore_task_definition_changes ? aws_ecs_service.ignore_task_definition[0].name : aws_ecs_service.main[0].name
+}
+
+output "ecs_task_definition_family" {
+  description = "ECS task definition family used by application deployment pipelines"
+  value       = aws_ecs_task_definition.main.family
+}
+
+output "ecs_task_role_arn" {
+  description = "ARN of the ECS task role"
+  value       = aws_iam_role.ecs_task.arn
 }
 
 output "rds_cluster_endpoint" {

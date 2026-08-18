@@ -122,43 +122,47 @@ resource "aws_ecs_task_definition" "main" {
       )
     ],
     var.telemetry_enabled ? [
-      {
-        name      = "otel-collector"
-        image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
-        essential = true
+      merge(
+        {
+          name      = "otel-collector"
+          image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
+          essential = true
 
-        command = ["--config", "env:OTELCOL_BASE_CONFIG"]
+          command = ["--config", "env:OTELCOL_BASE_CONFIG"]
 
-        portMappings = [
-          { containerPort = 4317, hostPort = 4317 },
-          { containerPort = 4318, hostPort = 4318 },
-          { containerPort = 13133, hostPort = 13133 },
-        ]
+          portMappings = [
+            { containerPort = 4317, hostPort = 4317 },
+            { containerPort = 4318, hostPort = 4318 },
+            { containerPort = 13133, hostPort = 13133 },
+          ]
 
-        environment = [
-          { name = "METRICS_ENDPOINT", value = var.metrics_endpoint },
-          { name = "OTELCOL_BASE_CONFIG", value = local.otel_base_config },
-          { name = "TELEMETRY_TOKEN", value = coalesce(var.telemetry_token, "") },
-        ]
+          environment = concat(
+            local.otel_collector_environment,
+            local.telemetry_token_environment,
+          )
 
-        healthCheck = {
-          command     = ["CMD", "/healthcheck"]
-          interval    = 30
-          timeout     = 5
-          retries     = 3
-          startPeriod = 30
-        }
-
-        logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            "awslogs-group"         = aws_cloudwatch_log_group.otel_collector[0].name
-            "awslogs-region"        = data.aws_region.current.id
-            "awslogs-stream-prefix" = "otel-collector"
+          healthCheck = {
+            command     = ["CMD", "/healthcheck"]
+            interval    = 30
+            timeout     = 5
+            retries     = 3
+            startPeriod = 30
           }
-        }
 
-      }
+          logConfiguration = {
+            logDriver = "awslogs"
+            options = {
+              "awslogs-group"         = aws_cloudwatch_log_group.otel_collector[0].name
+              "awslogs-region"        = data.aws_region.current.id
+              "awslogs-stream-prefix" = "otel-collector"
+            }
+          }
+
+        },
+        length(local.telemetry_token_secrets) > 0 ? {
+          secrets = local.telemetry_token_secrets
+        } : {},
+      )
     ] : []
   ))
 

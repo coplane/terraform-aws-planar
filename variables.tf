@@ -298,19 +298,46 @@ variable "telemetry_token_secret_arn" {
 }
 
 variable "app_container_overrides" {
-  description = "Additional container definition fields merged into the planar-app container. Keys set here override the module's defaults. Intended for runtime security agents and similar wrappers that must replace entryPoint, restate command, add linuxParameters capabilities, or mount a sidecar filesystem via volumesFrom."
+  description = "Additional container definition fields merged into the planar-app container. Keys set here override the module's defaults. Intended for runtime security agents and similar wrappers that must replace entryPoint, restate command, or add linuxParameters capabilities. The module invariants name, image, portMappings and essential are rejected."
   type        = any
   default     = {}
+
+  validation {
+    condition = length(setintersection(
+      toset(keys(var.app_container_overrides)),
+      toset(["name", "image", "portMappings", "essential"]),
+    )) == 0
+    error_message = "app_container_overrides must not set name, image, portMappings or essential. Overriding these detaches the container from its load balancer target group or from the module's image inputs, which fails at deploy time rather than at plan time."
+  }
 }
 
 variable "additional_containers" {
-  description = "Extra container definitions appended to the task definition, such as a runtime security sensor sidecar. Each entry must be a complete ECS container definition object."
+  description = "Extra container definitions appended to the task definition, such as a runtime security sensor sidecar. Each entry must be a complete ECS container definition object with a name that does not collide with the module's own containers."
   type        = any
   default     = []
+
+  validation {
+    condition     = alltrue([for c in var.additional_containers : try(c.name, "") != ""])
+    error_message = "Every entry in additional_containers must define a name."
+  }
+
+  validation {
+    condition = length(setintersection(
+      toset([for c in var.additional_containers : try(c.name, "")]),
+      toset(["planar-app", "otel-collector"]),
+    )) == 0
+    error_message = "additional_containers must not reuse the reserved container names planar-app or otel-collector, which the module defines itself."
+  }
 }
 
 variable "execution_role_additional_secret_arns" {
   description = "Secrets Manager ARNs the ECS execution role may read, in addition to those the module manages. Required when app_container_overrides or additional_containers reference secrets, because the execution role resolves them at task start."
+  type        = list(string)
+  default     = []
+}
+
+variable "execution_role_additional_kms_key_arns" {
+  description = "KMS key ARNs the ECS execution role may use to decrypt secrets listed in execution_role_additional_secret_arns. Only required when those secrets are encrypted with a customer-managed key; secrets using the AWS-managed aws/secretsmanager key need no additional grant."
   type        = list(string)
   default     = []
 }

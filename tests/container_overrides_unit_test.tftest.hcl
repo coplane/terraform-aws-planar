@@ -93,7 +93,7 @@ run "merges_overrides_into_the_app_container" {
         },
       ]
       volumesFrom = [{ sourceContainer = "runtime-sensor" }]
-      dependsOn   = [{ containerName = "runtime-sensor", condition = "COMPLETE" }]
+      dependsOn   = [{ containerName = "runtime-sensor", condition = "SUCCESS" }]
     }
   }
 
@@ -158,5 +158,61 @@ run "grants_execution_role_access_to_additional_secrets" {
   assert {
     condition     = length(aws_iam_role_policy.ecs_execution) == 1
     error_message = "The execution role policy must be created when additional secret ARNs are supplied."
+  }
+}
+
+run "rejects_overrides_of_module_invariants" {
+  command = plan
+
+  variables {
+    app_container_overrides = {
+      name = "hijacked"
+    }
+  }
+
+  expect_failures = [var.app_container_overrides]
+}
+
+run "rejects_reserved_container_names" {
+  command = plan
+
+  variables {
+    additional_containers = [
+      {
+        name  = "planar-app"
+        image = "123456789012.dkr.ecr.us-west-2.amazonaws.com/impostor:v1"
+      },
+    ]
+  }
+
+  expect_failures = [var.additional_containers]
+}
+
+run "requires_a_name_on_additional_containers" {
+  command = plan
+
+  variables {
+    additional_containers = [
+      {
+        image = "123456789012.dkr.ecr.us-west-2.amazonaws.com/nameless:v1"
+      },
+    ]
+  }
+
+  expect_failures = [var.additional_containers]
+}
+
+run "grants_kms_decrypt_when_a_key_is_supplied" {
+  command = plan
+
+  variables {
+    execution_role_additional_kms_key_arns = [
+      "arn:aws:kms:us-west-2:123456789012:key/00000000-0000-0000-0000-000000000000",
+    ]
+  }
+
+  assert {
+    condition     = length(aws_iam_role_policy.ecs_execution) == 1
+    error_message = "The execution role policy must be created when a KMS key ARN is supplied."
   }
 }

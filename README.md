@@ -43,7 +43,7 @@ data "aws_secretsmanager_secret" "telemetry_token" {
 }
 
 module "planar" {
-  source = "git::https://github.com/coplane/planar-deploy-infra-aws.git?ref=v0.10.0"
+  source = "git::https://github.com/coplane/terraform-aws-planar.git?ref=v0.10.0"
 
   app_name         = "claims"
   customer_name    = "example-customer"

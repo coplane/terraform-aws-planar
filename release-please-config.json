@@ -6,7 +6,7 @@
   "packages": {
     ".": {
       "release-type": "terraform-module",
-      "package-name": "planar-deploy-infra-aws"
+      "package-name": "terraform-aws-planar"
     }
   }
 }

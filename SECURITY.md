@@ -4,7 +4,7 @@
 
 Do not report security vulnerabilities through public GitHub issues.
 
-Email [support@coplane.com](mailto:support@coplane.com) with the subject `Security vulnerability: planar-deploy-infra-aws`. Include the affected module version, a description of the issue and its impact, reproduction steps, and any known mitigations.
+Email [support@coplane.com](mailto:support@coplane.com) with the subject `Security vulnerability: terraform-aws-planar`. Include the affected module version, a description of the issue and its impact, reproduction steps, and any known mitigations.
 
 CoPlane will acknowledge the report, investigate it, and coordinate remediation and disclosure with the reporter.
 

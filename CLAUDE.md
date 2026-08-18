@@ -1,4 +1,4 @@
-# Agent Instructions for planar-deploy-infra-aws
+# Agent Instructions for terraform-aws-planar
 
 This repo uses squash merges. The PR title becomes the commit subject on `main`.
 

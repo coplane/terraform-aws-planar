@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.9.0...v0.10.0) (2026-08-18)
+
+
+### Features
+
+* support customer-managed BYOC deployments ([#61](https://github.com/coplane/planar-deploy-infra-aws/issues/61)) ([30848c6](https://github.com/coplane/planar-deploy-infra-aws/commit/30848c6ac6f7a6e196fc116d4fba8fd3b0749861))
+
 ## [0.9.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.8.2...v0.9.0) (2026-08-12)
 
 

@@ -28,16 +28,12 @@ resource "aws_cloudwatch_log_group" "ecs" {
   tags = local.common_tags
 }
 
-resource "aws_ecs_task_definition" "main" {
-  family                   = "planar-service${local.suffix}"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = var.container_cpu
-  memory                   = var.container_memory
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
-
-  container_definitions = jsonencode(concat(
+# Container definitions are assembled here rather than inline in the resource so that
+# unit tests can assert on their structure during plan. The rendered JSON depends on
+# values that are unknown until apply (the ECR URL, the database endpoint), which makes
+# the resource attribute itself unusable in a plan-time assertion.
+locals {
+  task_container_definitions = concat(
     [
       merge(
         {
@@ -118,7 +114,8 @@ resource "aws_ecs_task_definition" "main" {
           repositoryCredentials = {
             credentialsParameter = aws_secretsmanager_secret.registry_credentials[0].arn
           }
-        } : {}
+        } : {},
+        var.app_container_overrides
       )
     ],
     var.telemetry_enabled ? [
@@ -163,8 +160,21 @@ resource "aws_ecs_task_definition" "main" {
           secrets = local.telemetry_token_secrets
         } : {},
       )
-    ] : []
-  ))
+    ] : [],
+    var.additional_containers,
+  )
+}
+
+resource "aws_ecs_task_definition" "main" {
+  family                   = "planar-service${local.suffix}"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.container_cpu
+  memory                   = var.container_memory
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode(local.task_container_definitions)
 
   track_latest = var.ignore_task_definition_changes
 

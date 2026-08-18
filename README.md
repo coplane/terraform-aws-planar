@@ -240,6 +240,54 @@ The module supports three image sources:
 
 Customer-managed ECR is recommended for BYOC deployments because image lifecycle and deployment permissions remain in the customer's infrastructure repository.
 
+## Runtime security agents
+
+Some enterprises require a runtime security sensor on every ECS workload. Wiz, CrowdStrike Falcon, Datadog and Sysdig share the same shape: the sensor becomes the container entrypoint, launches the application as a child process, and needs `SYS_PTRACE` to observe it.
+
+Three inputs make that expressible without the module knowing which vendor is in use:
+
+- `app_container_overrides` merges fields into the `planar-app` container, overriding module defaults.
+- `additional_containers` appends further containers, such as a sensor sidecar.
+- `execution_role_additional_secret_arns` grants the execution role access to secrets referenced above, which it resolves at task start.
+
+```hcl
+module "planar" {
+  # ...
+
+  additional_containers = [
+    {
+      name      = "runtime-sensor"
+      image     = "123456789012.dkr.ecr.us-west-2.amazonaws.com/runtime-sensor:v1"
+      essential = false
+    },
+  ]
+
+  app_container_overrides = {
+    # The sensor entrypoint replaces the image ENTRYPOINT, which discards its CMD,
+    # so the application's real start command must be restated here.
+    entryPoint      = ["/opt/sensor/sensor", "daemon", "--"]
+    command         = ["/app/planar", "serve"]
+    linuxParameters = { capabilities = { add = ["SYS_PTRACE"], drop = [] } }
+    volumesFrom     = [{ sourceContainer = "runtime-sensor" }]
+    dependsOn       = [{ containerName = "runtime-sensor", condition = "COMPLETE" }]
+    secrets = [
+      {
+        name      = "SENSOR_CLIENT_ID"
+        valueFrom = "arn:aws:secretsmanager:us-west-2:123456789012:secret:sensor:SENSOR_CLIENT_ID::"
+      },
+    ]
+  }
+
+  execution_role_additional_secret_arns = [
+    "arn:aws:secretsmanager:us-west-2:123456789012:secret:sensor",
+  ]
+}
+```
+
+Sharing the sensor's filesystem through `volumesFrom` means the application image itself does not need to contain the sensor binary, which matters when the image is published by a party that cannot modify it.
+
+Both override inputs are applied last, so they can replace any field the module sets. Supplying neither leaves the task definition byte-identical to previous releases.
+
 ## Security notes
 
 - ECS tasks and Aurora are placed in private subnets.

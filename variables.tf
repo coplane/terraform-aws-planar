@@ -296,3 +296,21 @@ variable "telemetry_token_secret_arn" {
   type        = string
   default     = null
 }
+
+variable "app_container_overrides" {
+  description = "Additional container definition fields merged into the planar-app container. Keys set here override the module's defaults. Intended for runtime security agents and similar wrappers that must replace entryPoint, restate command, add linuxParameters capabilities, or mount a sidecar filesystem via volumesFrom."
+  type        = any
+  default     = {}
+}
+
+variable "additional_containers" {
+  description = "Extra container definitions appended to the task definition, such as a runtime security sensor sidecar. Each entry must be a complete ECS container definition object."
+  type        = any
+  default     = []
+}
+
+variable "execution_role_additional_secret_arns" {
+  description = "Secrets Manager ARNs the ECS execution role may read, in addition to those the module manages. Required when app_container_overrides or additional_containers reference secrets, because the execution role resolves them at task start."
+  type        = list(string)
+  default     = []
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/coplane/terraform-aws-planar/compare/v0.10.0...v0.11.0) (2026-08-19)
+
+
+### Features
+
+* support container overrides and additional containers ([#64](https://github.com/coplane/terraform-aws-planar/issues/64)) ([cf0f368](https://github.com/coplane/terraform-aws-planar/commit/cf0f3683e0d9138b42468f9c9f7cbcf923e83182))
+
 ## [0.10.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.9.0...v0.10.0) (2026-08-18)
 
 

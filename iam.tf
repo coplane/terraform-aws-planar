@@ -74,13 +74,40 @@ data "aws_iam_policy_document" "ecs_execution_policy" {
     }
   }
 
+  dynamic "statement" {
+    for_each = length(var.execution_role_additional_secret_arns) > 0 ? [1] : []
+    content {
+      sid = "AdditionalSecretsAccess"
+      actions = [
+        "secretsmanager:GetSecretValue",
+      ]
+      resources = var.execution_role_additional_secret_arns
+    }
+  }
+
+  # Secrets encrypted with a customer-managed KMS key additionally require kms:Decrypt
+  # on that key. Secrets using the AWS-managed aws/secretsmanager key do not, which is
+  # why this is opt-in rather than derived from the secret ARNs above.
+  dynamic "statement" {
+    for_each = length(var.execution_role_additional_kms_key_arns) > 0 ? [1] : []
+    content {
+      sid = "AdditionalSecretsKmsDecrypt"
+      actions = [
+        "kms:Decrypt",
+      ]
+      resources = var.execution_role_additional_kms_key_arns
+    }
+  }
+
 }
 
 resource "aws_iam_role_policy" "ecs_execution" {
   count = (
     var.repository_name != null ||
     (var.container_registry_username != null && var.container_registry_password != null) ||
-    (var.telemetry_enabled && var.telemetry_token_secret_arn != null)
+    (var.telemetry_enabled && var.telemetry_token_secret_arn != null) ||
+    length(var.execution_role_additional_secret_arns) > 0 ||
+    length(var.execution_role_additional_kms_key_arns) > 0
   ) ? 1 : 0
   name   = "ecs-execution-policy${local.suffix}"
   role   = aws_iam_role.ecs_execution.id

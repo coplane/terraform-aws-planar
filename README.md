@@ -240,6 +240,63 @@ The module supports three image sources:
 
 Customer-managed ECR is recommended for BYOC deployments because image lifecycle and deployment permissions remain in the customer's infrastructure repository.
 
+## Runtime security agents
+
+Some enterprises require a runtime security sensor on every ECS workload. Wiz, CrowdStrike Falcon, Datadog and Sysdig share the same shape: the sensor becomes the container entrypoint, launches the application as a child process, and needs `SYS_PTRACE` to observe it.
+
+Three inputs make that expressible without the module knowing which vendor is in use:
+
+- `app_container_overrides` merges fields into the `planar-app` container, overriding module defaults.
+- `additional_containers` appends further containers, such as a sensor sidecar.
+- `execution_role_additional_secret_arns` grants the execution role access to secrets referenced above, which it resolves at task start.
+
+```hcl
+module "planar" {
+  # ...
+
+  additional_containers = [
+    {
+      name      = "runtime-sensor"
+      image     = "123456789012.dkr.ecr.us-west-2.amazonaws.com/runtime-sensor:v1"
+      essential = false
+    },
+  ]
+
+  app_container_overrides = {
+    # The sensor entrypoint replaces the image ENTRYPOINT, which discards its CMD,
+    # so the application's real start command must be restated here.
+    entryPoint      = ["/opt/sensor/sensor", "daemon", "--"]
+    command         = ["/app/planar", "serve"]
+    linuxParameters = { capabilities = { add = ["SYS_PTRACE"], drop = [] } }
+    volumesFrom     = [{ sourceContainer = "runtime-sensor" }]
+    dependsOn       = [{ containerName = "runtime-sensor", condition = "SUCCESS" }]
+    secrets = [
+      {
+        name      = "SENSOR_CLIENT_ID"
+        valueFrom = "arn:aws:secretsmanager:us-west-2:123456789012:secret:sensor:SENSOR_CLIENT_ID::"
+      },
+    ]
+  }
+
+  execution_role_additional_secret_arns = [
+    "arn:aws:secretsmanager:us-west-2:123456789012:secret:sensor",
+  ]
+}
+```
+
+Sharing the sensor's filesystem through `volumesFrom` means the application image itself does not need to contain the sensor binary, which matters when the image is published by a party that cannot modify it.
+
+`SUCCESS` rather than `COMPLETE` is deliberate. `COMPLETE` is satisfied by any exit status, so a sensor that failed to initialise would still let the application start — running unmonitored while appearing healthy. `SUCCESS` fails closed.
+
+Supplying neither input leaves the task definition byte-identical to previous releases.
+
+Two guard rails are enforced at plan time rather than left to documentation:
+
+- `app_container_overrides` rejects `name`, `image`, `portMappings` and `essential`. Overriding those detaches the container from its target group or from the module's image inputs, and the failure would otherwise appear at deploy time.
+- `additional_containers` rejects the reserved names `planar-app` and `otel-collector`, and requires every entry to have a name.
+
+If the referenced secrets are encrypted with a customer-managed KMS key, also set `execution_role_additional_kms_key_arns`. Secrets using the AWS-managed `aws/secretsmanager` key need no additional grant.
+
 ## Security notes
 
 - ECS tasks and Aurora are placed in private subnets.
@@ -291,11 +348,13 @@ Use an immutable release tag and review the [changelog](CHANGELOG.md) before upd
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID where resources will be created | `string` | n/a | yes |
 | <a name="input_workos_client_id"></a> [workos\_client\_id](#input\_workos\_client\_id) | WorkOS client ID | `string` | n/a | yes |
 | <a name="input_workos_org_id"></a> [workos\_org\_id](#input\_workos\_org\_id) | WorkOS organization ID | `string` | n/a | yes |
+| <a name="input_additional_containers"></a> [additional\_containers](#input\_additional\_containers) | Extra container definitions appended to the task definition, such as a runtime security sensor sidecar. Each entry must be a complete ECS container definition object with a name that does not collide with the module's own containers. | `any` | `[]` | no |
 | <a name="input_alb_access_logs_bucket"></a> [alb\_access\_logs\_bucket](#input\_alb\_access\_logs\_bucket) | S3 bucket name for ALB access logs (required when alb\_access\_logs\_enabled = true) | `string` | `null` | no |
 | <a name="input_alb_access_logs_enabled"></a> [alb\_access\_logs\_enabled](#input\_alb\_access\_logs\_enabled) | Enable ALB access logging (requires alb\_access\_logs\_bucket) | `bool` | `false` | no |
 | <a name="input_alb_access_logs_prefix"></a> [alb\_access\_logs\_prefix](#input\_alb\_access\_logs\_prefix) | S3 key prefix for ALB access logs | `string` | `null` | no |
 | <a name="input_alb_internal"></a> [alb\_internal](#input\_alb\_internal) | Whether the ALB should be internal (not accessible from internet) | `bool` | `false` | no |
 | <a name="input_alb_subnets"></a> [alb\_subnets](#input\_alb\_subnets) | List of public subnet IDs for the ALB (required for internet-facing ALBs) | `list(string)` | `null` | no |
+| <a name="input_app_container_overrides"></a> [app\_container\_overrides](#input\_app\_container\_overrides) | Additional container definition fields merged into the planar-app container. Keys set here override the module's defaults. Intended for runtime security agents and similar wrappers that must replace entryPoint, restate command, or add linuxParameters capabilities. The module invariants name, image, portMappings and essential are rejected. | `any` | `{}` | no |
 | <a name="input_aurora_max_capacity"></a> [aurora\_max\_capacity](#input\_aurora\_max\_capacity) | Maximum Aurora Serverless v2 capacity (ACUs) | `number` | `2` | no |
 | <a name="input_aurora_min_capacity"></a> [aurora\_min\_capacity](#input\_aurora\_min\_capacity) | Minimum Aurora Serverless v2 capacity (ACUs) | `number` | `0.5` | no |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region | `string` | `"us-west-2"` | no |
@@ -316,6 +375,8 @@ Use an immutable release tag and review the [changelog](CHANGELOG.md) before upd
 | <a name="input_ecs_log_retention_days"></a> [ecs\_log\_retention\_days](#input\_ecs\_log\_retention\_days) | CloudWatch log retention (days) for app ECS logs | `number` | `14` | no |
 | <a name="input_enable_ecs_container_metrics"></a> [enable\_ecs\_container\_metrics](#input\_enable\_ecs\_container\_metrics) | Enable the ECS container metrics receiver in the OTEL collector. When enabled, exports CPU, memory, network I/O, and storage metrics at both task and container level. | `bool` | `false` | no |
 | <a name="input_enable_logs_pipeline"></a> [enable\_logs\_pipeline](#input\_enable\_logs\_pipeline) | Enable an OTel Collector logs pipeline that exports app OTLP logs to the telemetry gateway. Uses the same endpoint and token as metrics/traces. | `bool` | `false` | no |
+| <a name="input_execution_role_additional_kms_key_arns"></a> [execution\_role\_additional\_kms\_key\_arns](#input\_execution\_role\_additional\_kms\_key\_arns) | KMS key ARNs the ECS execution role may use to decrypt secrets listed in execution\_role\_additional\_secret\_arns. Only required when those secrets are encrypted with a customer-managed key; secrets using the AWS-managed aws/secretsmanager key need no additional grant. | `list(string)` | `[]` | no |
+| <a name="input_execution_role_additional_secret_arns"></a> [execution\_role\_additional\_secret\_arns](#input\_execution\_role\_additional\_secret\_arns) | Secrets Manager ARNs the ECS execution role may read, in addition to those the module manages. Required when app\_container\_overrides or additional\_containers reference secrets, because the execution role resolves them at task start. | `list(string)` | `[]` | no |
 | <a name="input_ignore_task_definition_changes"></a> [ignore\_task\_definition\_changes](#input\_ignore\_task\_definition\_changes) | Whether changes to the ECS service task\_definition should be ignored. Enable when an external CI/CD pipeline (not Terraform) deploys new task definition revisions. | `bool` | `false` | no |
 | <a name="input_import_image_to_ecr"></a> [import\_image\_to\_ecr](#input\_import\_image\_to\_ecr) | Whether to import the source image to the created ECR repository | `bool` | `false` | no |
 | <a name="input_metrics_endpoint"></a> [metrics\_endpoint](#input\_metrics\_endpoint) | OTLP HTTP base URL for the metrics exporter (Coplane telemetry gateway). Required when telemetry\_enabled = true. | `string` | `"https://telemetry.coplane.dev"` | no |

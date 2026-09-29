@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/coplane/terraform-aws-planar/compare/v0.10.0...v0.11.0) (2026-09-29)
+
+
+### Features
+
+* support container overrides and additional containers ([#64](https://github.com/coplane/terraform-aws-planar/issues/64)) ([cf0f368](https://github.com/coplane/terraform-aws-planar/commit/cf0f3683e0d9138b42468f9c9f7cbcf923e83182))
+
+
+### Bug Fixes
+
+* trust ALB proxy headers and exempt MCP from WAF Bot Control ([#67](https://github.com/coplane/terraform-aws-planar/issues/67)) ([6e749d9](https://github.com/coplane/terraform-aws-planar/commit/6e749d9f56c676a9b557f3b2a3fd9cfff88b7bb6))
+
 ## [0.10.0](https://github.com/coplane/planar-deploy-infra-aws/compare/v0.9.0...v0.10.0) (2026-08-18)
 
 

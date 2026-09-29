@@ -91,7 +91,8 @@ locals {
                 value = var.workos_org_id
               }
             ],
-            [for k, v in var.custom_environment_variables : { name = k, value = v }],
+            # Port 8000 accepts traffic only from this module's ALB security group.
+            [for k, v in merge({ FORWARDED_ALLOW_IPS = "*" }, var.custom_environment_variables) : { name = k, value = v }],
             var.telemetry_enabled ? [
               {
                 name  = "OTEL_EXPORTER_OTLP_ENDPOINT"

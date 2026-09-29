@@ -58,6 +58,47 @@ resource "aws_wafv2_web_acl" "main" {
           name        = rule.value.managed
           vendor_name = rule.value.vendor
 
+          # MCP clients and Planar's HTTP client are intentionally non-browser clients.
+          # Keep all other managed rule groups active for these requests.
+          dynamic "scope_down_statement" {
+            for_each = rule.value.vendor == "AWS" && rule.value.managed == "AWSManagedRulesBotControlRuleSet" ? [1] : []
+            content {
+              not_statement {
+                statement {
+                  or_statement {
+                    statement {
+                      regex_match_statement {
+                        regex_string = "^(/planar/mcp|/\\.well-known/oauth-protected-resource)(/|$)"
+                        field_to_match {
+                          uri_path {}
+                        }
+                        text_transformation {
+                          priority = 0
+                          type     = "NONE"
+                        }
+                      }
+                    }
+                    statement {
+                      byte_match_statement {
+                        search_string         = "planar http client"
+                        positional_constraint = "CONTAINS"
+                        field_to_match {
+                          single_header {
+                            name = "user-agent"
+                          }
+                        }
+                        text_transformation {
+                          priority = 0
+                          type     = "LOWERCASE"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           dynamic "rule_action_override" {
             for_each = rule.value.managed == "AWSManagedRulesCommonRuleSet" ? [
               "SizeRestrictions_BODY",

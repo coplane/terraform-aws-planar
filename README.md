@@ -4,6 +4,14 @@ An opinionated Terraform module for deploying a Planar application into a custom
 
 The module owns the application infrastructure. The customer owns the AWS account, Terraform root configuration and state, networking, DNS zone, container image, and deployment pipeline.
 
+## Proxy headers and MCP access
+
+The application container defaults to `FORWARDED_ALLOW_IPS=*` so Uvicorn honors the ALB's `X-Forwarded-Proto` header and generates HTTPS redirects. This module restricts inbound application traffic on port 8000 to its ALB security group. Preserve that restriction when extending the deployment. Override the value through `custom_environment_variables` if your proxy topology requires a narrower trust list.
+
+When the module creates a WAF and `AWSManagedRulesBotControlRuleSet` is enabled, Bot Control excludes `/planar/mcp`, `/.well-known/oauth-protected-resource`, their subpaths, and requests whose User-Agent contains `planar http client`. Other managed rule groups still inspect those requests. OAuth registration remains at the authorization server; `/register` is not exempted.
+
+An existing ACL supplied through `waf_web_acl_arn` must be updated in the infrastructure that owns it. These rules do not modify external ACLs. Deployments with `ignore_task_definition_changes=true` must also roll out the new task definition through their deployment workflow for environment changes to take effect.
+
 ## What this module creates
 
 | Area | Resources |

@@ -58,6 +58,28 @@ resource "aws_wafv2_web_acl" "main" {
           name        = rule.value.managed
           vendor_name = rule.value.vendor
 
+          # MCP clients are intentionally non-browser clients.
+          # Keep all other managed rule groups active for these requests.
+          dynamic "scope_down_statement" {
+            for_each = rule.value.vendor == "AWS" && rule.value.managed == "AWSManagedRulesBotControlRuleSet" ? [1] : []
+            content {
+              not_statement {
+                statement {
+                  regex_match_statement {
+                    regex_string = "^(/planar/mcp|/\\.well-known/oauth-protected-resource)(/|$)"
+                    field_to_match {
+                      uri_path {}
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "NONE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           dynamic "rule_action_override" {
             for_each = rule.value.managed == "AWSManagedRulesCommonRuleSet" ? [
               "SizeRestrictions_BODY",

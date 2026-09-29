@@ -216,3 +216,43 @@ run "grants_kms_decrypt_when_a_key_is_supplied" {
     error_message = "The execution role policy must be created when a KMS key ARN is supplied."
   }
 }
+
+run "trusts_forwarded_headers_from_alb_only_ingress" {
+  command = plan
+
+  assert {
+    condition     = [for entry in local.task_container_definitions[0].environment : entry.value if entry.name == "FORWARDED_ALLOW_IPS"] == ["*"]
+    error_message = "The app must receive exactly one proxy trust setting."
+  }
+
+  assert {
+    condition     = aws_security_group_rule.ecs_from_alb.from_port == 8000 && aws_security_group_rule.ecs_from_alb.to_port == 8000 && aws_security_group_rule.ecs_from_alb.cidr_blocks == null
+    error_message = "Application ingress must remain restricted to a source security group."
+  }
+}
+
+run "allows_explicit_proxy_trust_override" {
+  command = plan
+  variables {
+    custom_environment_variables = { FORWARDED_ALLOW_IPS = "10.0.1.0/24" }
+  }
+  assert {
+    condition     = [for entry in local.task_container_definitions[0].environment : entry.value if entry.name == "FORWARDED_ALLOW_IPS"] == ["10.0.1.0/24"]
+    error_message = "Custom proxy trust must replace the default without duplicate entries."
+  }
+}
+
+run "limits_mcp_exemptions_to_bot_control" {
+  command = plan
+  variables {
+    create_waf              = true
+    waf_managed_rule_groups = [{ name = "AWSManagedRulesBotControlRuleSet", metric = "bots" }]
+  }
+  assert {
+    condition = alltrue([
+      for rule in aws_wafv2_web_acl.main[0].rule :
+      length(one(one(rule.statement).managed_rule_group_statement).scope_down_statement) == (rule.name == "AWSManagedRulesBotControlRuleSet" ? 1 : 0)
+    ])
+    error_message = "Only Bot Control may exclude MCP requests."
+  }
+}

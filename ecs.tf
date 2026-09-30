@@ -123,7 +123,7 @@ locals {
       merge(
         {
           name      = "otel-collector"
-          image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
+          image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.49.0"
           essential = true
 
           command = ["--config", "env:OTELCOL_BASE_CONFIG"]

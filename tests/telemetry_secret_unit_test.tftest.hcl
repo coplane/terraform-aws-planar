@@ -78,6 +78,20 @@ variables {
   workos_org_id          = "org_test"
 }
 
+run "health_checks_require_http_200" {
+  command = plan
+
+  assert {
+    condition     = aws_lb_target_group.main.health_check[0].matcher == "200"
+    error_message = "Application health checks must reject redirects and HTTP errors."
+  }
+
+  assert {
+    condition     = aws_lb_target_group.main.health_check[0].path == "/planar/v1/health"
+    error_message = "Application health checks must use Planar's public health endpoint."
+  }
+}
+
 run "injects_telemetry_token_from_secrets_manager" {
   command = plan
 

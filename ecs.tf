@@ -207,7 +207,7 @@ resource "aws_lb_target_group" "main" {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
-    matcher             = "200-499"
+    matcher             = "200"
     path                = "/planar/v1/health"
     port                = "traffic-port"
     protocol            = "HTTP"

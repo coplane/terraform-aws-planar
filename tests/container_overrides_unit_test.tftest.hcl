@@ -252,6 +252,7 @@ run "limits_mcp_exemptions_to_bot_control" {
     condition = alltrue([
       for rule in aws_wafv2_web_acl.main[0].rule :
       length(one(one(rule.statement).managed_rule_group_statement).scope_down_statement) == (rule.name == "AWSManagedRulesBotControlRuleSet" ? 1 : 0)
+      if length(one(rule.statement).managed_rule_group_statement) > 0
     ])
     error_message = "Only Bot Control may exclude MCP requests."
   }

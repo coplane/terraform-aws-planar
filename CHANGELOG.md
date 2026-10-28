@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/coplane/terraform-aws-planar/compare/v0.11.0...v0.11.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* exempt MCP paths from the WAF NoUserAgent rule ([#69](https://github.com/coplane/terraform-aws-planar/issues/69)) ([f83120d](https://github.com/coplane/terraform-aws-planar/commit/f83120de0ee2a4010074187adb41507f0e7d2bd1))
+
 ## [0.11.0](https://github.com/coplane/terraform-aws-planar/compare/v0.10.0...v0.11.0) (2026-09-29)
 
 

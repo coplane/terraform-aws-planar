@@ -30,6 +30,9 @@ locals {
   ]
 
   all_waf_rules = concat(local.default_waf_rules, local.extra_waf_rules)
+
+  # MCP clients are intentionally non-browser clients, and some (e.g. Copilot Studio) send no User-Agent.
+  mcp_path_regex = "^(/planar/mcp|/\\.well-known/oauth-protected-resource)(/|$)"
 }
 
 resource "aws_wafv2_web_acl" "main" {
@@ -58,15 +61,14 @@ resource "aws_wafv2_web_acl" "main" {
           name        = rule.value.managed
           vendor_name = rule.value.vendor
 
-          # MCP clients are intentionally non-browser clients.
-          # Keep all other managed rule groups active for these requests.
+          # Keep all other managed rule groups active for MCP requests.
           dynamic "scope_down_statement" {
             for_each = rule.value.vendor == "AWS" && rule.value.managed == "AWSManagedRulesBotControlRuleSet" ? [1] : []
             content {
               not_statement {
                 statement {
                   regex_match_statement {
-                    regex_string = "^(/planar/mcp|/\\.well-known/oauth-protected-resource)(/|$)"
+                    regex_string = local.mcp_path_regex
                     field_to_match {
                       uri_path {}
                     }
@@ -80,11 +82,13 @@ resource "aws_wafv2_web_acl" "main" {
             }
           }
 
+          # NoUserAgent_HEADER is re-enforced outside MCP paths by block-no-user-agent below.
           dynamic "rule_action_override" {
             for_each = rule.value.managed == "AWSManagedRulesCommonRuleSet" ? [
               "SizeRestrictions_BODY",
               "CrossSiteScripting_BODY",
               "GenericRFI_BODY",
+              "NoUserAgent_HEADER",
             ] : []
             content {
               name = rule_action_override.value
@@ -101,6 +105,48 @@ resource "aws_wafv2_web_acl" "main" {
         metric_name                = "${rule.value.metric}${local.suffix}"
         sampled_requests_enabled   = true
       }
+    }
+  }
+
+  rule {
+    name     = "block-no-user-agent"
+    priority = length(local.all_waf_rules) + 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      and_statement {
+        statement {
+          label_match_statement {
+            scope = "LABEL"
+            key   = "awswaf:managed:aws:core-rule-set:NoUserAgent_Header"
+          }
+        }
+        statement {
+          not_statement {
+            statement {
+              regex_match_statement {
+                regex_string = local.mcp_path_regex
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "NONE"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "waf-block-no-user-agent${local.suffix}"
+      sampled_requests_enabled   = true
     }
   }
 
